@@ -1,0 +1,48 @@
+{{ template "sign_base" .}}
+
+{{ block "maincontent" .}}
+
+<div class="h-auto d-inline-block my-auto justify-content-center">
+    <form action="/auth/sign-up/" method="post" name="email_input_form" id="emailinputform">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required name="email">
+        </div>
+        <button type="submit" class="btn btn-primary">Далее</button>
+    </form>
+    <p class="text-end mb-0"> Уже зарегистрированы? </p>
+    <p class="text-end"><a href="#">Вход</a></p>
+</div>
+
+<p class="">
+    Регистрируясь в нашей системе вы соглашаетесь с нашей <a href="#"> политикой конфиленциальности </a> и <a href="#">
+        публичной офертой </a>
+</p>
+
+<script>
+    // const form = document.getElementById("emailinputform");
+
+    // form.addEventListener("submit", function (event) {
+    //     event.preventDefault();
+
+    //     const jsonObject = {};
+    //     jsonObject["Email"] = document.getElementById("InputEmail").value;
+
+    //     fetch("/auth/sign-up/", {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json"
+    //         },
+    //         body: JSON.stringify(jsonObject)
+    //     })
+    //         .then(response => console.log(response))
+    //         .then(data => {
+    //             console.log(data)
+    //         })
+    //         .catch(error => {
+    //             console.log(error)
+    //         });
+    // });
+</script>
+
+{{end}}

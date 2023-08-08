@@ -1,0 +1,31 @@
+{{template "sign_base" .}}
+
+{{block "maincontent" .}}
+<div class="h-auto d-inline-block my-auto justify-content-center">
+    <form action="/auth/create-account/" method="post" name="create_account_form" id="create_account_form">
+
+        <div class="mb-3">
+            <label for="FullName" class="form-label">Имя, Фамилия</label>
+            <input type="text" class="form-control" id="FullName" name="FullName">
+        </div>
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Имя пользователя</label>
+            <input type="text" class="form-control" id="username" name="username">
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Пароль</label>
+            <input type="password" class="form-control" id="password" name="password">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Далее</button>
+    </form>
+</div>
+
+<p class="">
+    Регистрируясь в нашей системе вы соглашаетесь с нашей <a href="#"> политикой конфиленциальности </a> и <a href="#">
+        публичной офертой </a>
+</p>
+
+{{end}}

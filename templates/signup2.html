@@ -1,0 +1,62 @@
+{{template "sign_base" .}}
+
+{{block "maincontent" .}}
+<div class="my-auto px-auto">
+    <p class="lead text-center">Мы отправили проверочный код на {{.}} Никому не сообщайте проверочный
+        код в целях безопасности</p>
+    <form action="/auth/verify/{{.}}" method="post" name="OTPInputForm" id="OTPInputForm">
+        <div class="mb-3">
+            <label for="OTP" class="form-label">Проверочный код</label>
+            <input type="number" class="form-control" id="OTP" name="OTP" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Далее</button>
+    </form>
+    <p class="text-end mb-0"> Не получили код? </p>
+    <p class="text-end" id="timer"> 2:00 </p>
+</div>
+
+<p class="text-center">
+    Регистрируясь в нашей системе вы соглашаетесь с нашей <a href="#"> политикой конфиленциальности </a> и <a href="#">
+        публичной офертой </a>
+</p>
+
+<script>
+    setCookie("email", "{{.}}", 1); 
+
+    function setCookie(name, value, days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        var expires = "expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + "; " + expires + "; path=/";
+    }
+
+    // Установить время в секундах
+    var timeLeft = 120;
+
+    // Получить элемент, который будет отображать оставшееся время
+    var timerElement = document.getElementById('timer');
+
+    // Запустить таймер
+    var timerId = setInterval(countdown, 1000);
+
+    // Функция обратного отсчета
+    function countdown() {
+        // Вычислить минуты и секунды
+        var minutes = Math.floor(timeLeft / 60);
+        var seconds = timeLeft % 60;
+
+        // Отобразить оставшееся время
+        timerElement.innerHTML = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+
+        // Уменьшить время на 1 секунду
+        timeLeft--;
+
+        // Если время вышло, остановить таймер и показать ссылку для повторной отправки OTP
+        if (timeLeft < 0) {
+            clearInterval(timerId);
+            timerElement.innerHTML = "<a href='#'> Отправить заново </a>";
+        }
+    }
+</script>
+{{end}}
