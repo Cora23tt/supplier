@@ -1,8 +1,11 @@
 package service
 
 import (
+	"encoding/base64"
+
 	online_diler "github.com/cora23tt/online-diler"
 	"github.com/cora23tt/online-diler/pkg/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -18,8 +21,12 @@ func (s *AuthService) CreateUser(user online_diler.User) (int, error) {
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) GenerateToken(username, password string) (string, error) {
-	return "", nil
+func (s *AuthService) GenerateToken(email, password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(email), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(hash), nil
 }
 
 func (*AuthService) ParseToken(accessToken string) (int, error) {

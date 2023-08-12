@@ -22,17 +22,17 @@
 </p>
 
 <script>
-    setCookie("email", "{{.}}", 1); 
+    // setCookie("email", "{{.}}", 1);
 
-    function setCookie(name, value, days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        var expires = "expires=" + date.toUTCString();
-        document.cookie = name + "=" + value + "; " + expires + "; path=/";
-    }
+    // function setCookie(name, value, days) {
+    //     var date = new Date();
+    //     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    //     var expires = "expires=" + date.toUTCString();
+    //     document.cookie = name + "=" + value + "; " + expires + "; path=/";
+    // }
 
-    // Установить время в секундах
-    var timeLeft = 120;
+    // // Установить время в секундах
+    // var timeLeft = 120;
 
     // Получить элемент, который будет отображать оставшееся время
     var timerElement = document.getElementById('timer');

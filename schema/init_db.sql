@@ -12,7 +12,7 @@ CREATE TABLE users
 (
     id SERIAL NOT NULL UNIQUE,
     username VARCHAR(225) NOT NULL UNIQUE,
-    password_hash VARCHAR(225) NOT NULL,
+    password VARCHAR(225) NOT NULL,
     first_name VARCHAR(225) NOT NULL UNIQUE,
     last_name VARCHAR(225) NOT NULL,
     email VARCHAR(254) NOT NULL UNIQUE,

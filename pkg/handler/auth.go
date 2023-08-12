@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"net/http"
-	"strconv"
 
 	online_diler "github.com/cora23tt/online-diler"
 	"github.com/gin-gonic/gin"
@@ -15,152 +13,166 @@ type ErrorPageData struct {
 	ErrorMessage string
 }
 
-type signInInput struct {
-	Username string `json:"username" binging:"required"`
-	Password string `json:"password" binging:"required"`
-}
+// type signInInput struct {
+// 	Username string `json:"username" binging:"required"`
+// 	Password string `json:"password" binging:"required"`
+// }
 
-func (h *Handler) createAccount(c *gin.Context) {
-	// save entered credentials into db
-	emailCookie, _ := c.Request.Cookie("email")
+// func (h *Handler) createAccount(c *gin.Context) {
+// 	// save entered credentials into db
+// 	emailCookie, _ := c.Request.Cookie("email")
+// 	// input value OTP from html form
+// 	if err := c.Request.ParseForm(); err != nil {
+// 		fmt.Fprintf(c.Writer, "ParseForm() err: %v", err)
+// 		return
+// 	}
+// 	full_name := c.Request.FormValue("FullName")
+// 	username := c.Request.FormValue("username")
+// 	password := c.Request.FormValue("password")
+// 	user := online_diler.User{
+// 		FirstName: full_name,
+// 		Email:     emailCookie.Value,
+// 		Username:  username,
+// 		Password:  password,
+// 	}
+// 	_, err := h.services.Authorisation.CreateUser(user)
+// 	if err != nil {
+// 		renderSignup3(c)
+// 	}
+// 	// return store main page
+// 	h.indexPage(c)
+// }
 
-	// input value OTP from html form
-	if err := c.Request.ParseForm(); err != nil {
-		fmt.Fprintf(c.Writer, "ParseForm() err: %v", err)
-		return
-	}
-	full_name := c.Request.FormValue("FullName")
-	username := c.Request.FormValue("username")
-	password := c.Request.FormValue("password")
-
-	user := online_diler.User{
-		Fullname: full_name,
-		Email:    emailCookie.Value,
-		Username: username,
-		Password: password,
-	}
-	_, err := h.services.Authorisation.CreateUser(user)
-	if err != nil {
-		renderSignup3(c)
-	}
-
-	// return store main page
-	h.indexPage(c)
-}
-
-func (h *Handler) verifyEmail(c *gin.Context) {
-
-	// email from params
+func (h *Handler) verify(c *gin.Context) {
 	email := c.Param("email")
 
-	// input value OTP from html form
 	if err := c.Request.ParseForm(); err != nil {
 		fmt.Fprintf(c.Writer, "ParseForm() err: %v", err)
 		return
 	}
 	OTP := c.Request.FormValue("OTP")
 
-	// search email for matches from OTP basket
-	eAuth, err := h.services.EAuthBasket.Find(email)
+	err := h.services.EAuthService.CheckOTP(email, OTP)
 	if err != nil {
-		h.signUp(c)
-	}
-
-	// checking inputed OTP
-	if strconv.Itoa(eAuth.OTP) != OTP {
-		data := ErrorPageData{ErrorMessage: "wrong one time password"}
-		h.renderErrorPage(c, data)
+		h.render(c, ErrorPageData{ErrorMessage: "wrong one time password"}, "sign_base",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html",
+		)
 		return
 	}
 
-	// try to save email in verified emails array
-	if err := h.services.VerifyedEmailsService.Save(email); err != nil {
-		// already exist
-		data := ErrorPageData{ErrorMessage: err.Error()}
-		h.renderErrorPage(c, data)
+	// save user credentials in DB
+	session, err := h.services.EAuthService.Get(email)
+	if err != nil {
+		h.render(c, ErrorPageData{ErrorMessage: "internal system error, can`t create user"}, "sign_base",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html",
+		)
+		return
 	}
-	renderSignup3(c)
+
+	user := online_diler.User{
+		Email:     session.Email,
+		FirstName: session.FirstName,
+		LastName:  session.LastName,
+		Password:  session.Password,
+	}
+
+	_, err = h.services.Authorisation.CreateUser(user)
+	if err != nil {
+		h.render(c, ErrorPageData{ErrorMessage: "internal system error, can`t create user"}, "sign_base",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html",
+		)
+		return
+	}
+
+	access_token, err := h.services.Authorisation.GenerateToken(session.Email, "")
+	if err != nil {
+		log.Println("Can`t generate access_token hash", err.Error())
+		h.render(c, ErrorPageData{ErrorMessage: "internal system error, can`t create user"}, "sign_base",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html",
+		)
+		return
+	}
+	c.SetCookie("access_token", access_token, 43200, "/", "", false, false)
+	c.Redirect(301, "/")
 }
 
 func (h *Handler) sendOTP(c *gin.Context) {
 
-	// getting input email
+	// getting input credentials
 	if err := c.Request.ParseForm(); err != nil {
 		fmt.Fprintf(c.Writer, "ParseForm() err: %v", err)
 		return
 	}
-	email := c.Request.FormValue("email")
+	user := online_diler.User{
+		Email:     c.Request.FormValue("email"),
+		FirstName: c.Request.FormValue("firstname"),
+		LastName:  c.Request.FormValue("surname"),
+		Password:  c.Request.FormValue("password"),
+	}
 
 	// sending OTP to email
-	if err := h.services.SendOTP(email); err != nil {
-		data := ErrorPageData{ErrorMessage: err.Error()}
-		h.renderErrorPage(c, data)
+	if err := h.services.EAuthService.SendOTP(user); err != nil {
+		h.render(
+			c, ErrorPageData{ErrorMessage: err.Error()}, "sign_base",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+			"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html",
+		)
 		return
 	}
 
 	// rendering "OTP input" page
-	t, err := template.ParseFiles("/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
-		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup2.html")
-	if err != nil {
-		log.Println("Error parsing templates: ", err)
-	}
-	if err = t.ExecuteTemplate(c.Writer, "sign_base", email); err != nil {
-		log.Println("Error executing template: ", err)
-	}
+	h.render(
+		c, c.Request.FormValue("email"), "sign_base",
+		"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup2.html",
+	)
 }
 
 func (h *Handler) signUp(c *gin.Context) {
+	h.render(
+		c, nil, "sign_base",
+		"/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup.html",
+	)
+}
 
-	t, err := template.ParseFiles("/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
-		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup.html")
+// func (h *Handler) signIn(c *gin.Context) {
+// 	var input signInInput
+// 	if err := c.BindJSON(&input); err != nil {
+// 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+// 		return
+// 	}
+// 	token, err := h.services.Authorisation.GenerateToken(input.Username, input.Password)
+// 	if err != nil {
+// 		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, map[string]interface{}{
+// 		"token": token,
+// 	})
+// }
+
+func (h *Handler) render(c *gin.Context, data any, tmp_name string, pages ...string) {
+	t, err := template.ParseFiles(pages...)
 	if err != nil {
 		log.Println("Error parsing templates: ", err)
 	}
-
-	err = t.ExecuteTemplate(c.Writer, "sign_base", nil)
-	if err != nil {
+	if err = t.ExecuteTemplate(c.Writer, tmp_name, data); err != nil {
 		log.Println("Error executing template: ", err)
 	}
 }
 
-func (h *Handler) signIn(c *gin.Context) {
-	var input signInInput
-
-	if err := c.BindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	token, err := h.services.Authorisation.GenerateToken(input.Username, input.Password)
-
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
-	})
-}
-
-func (h *Handler) renderErrorPage(c *gin.Context, data ErrorPageData) {
-	t, err := template.ParseFiles("/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
-		"/home/cora/Documents/projects/golang-projects/online-diler/templates/error_page.html")
-	if err != nil {
-		log.Println("Error parsing templates: ", err)
-	}
-	if err = t.ExecuteTemplate(c.Writer, "sign_base", data); err != nil {
-		log.Println("Error executing template: ", err)
-	}
-}
-
-func renderSignup3(c *gin.Context) {
-	t, err := template.ParseFiles("/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
-		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup3.html")
-	if err != nil {
-		log.Println("Error parsing templates: ", err)
-	}
-	if err = t.ExecuteTemplate(c.Writer, "sign_base", nil); err != nil {
-		log.Println("Error executing template: ", err)
-	}
-}
+// func renderSignup3(c *gin.Context) {
+// 	t, err := template.ParseFiles("/home/cora/Documents/projects/golang-projects/online-diler/templates/sign_base.html",
+// 		"/home/cora/Documents/projects/golang-projects/online-diler/templates/signup3.html")
+// 	if err != nil {
+// 		log.Println("Error parsing templates: ", err)
+// 	}
+// 	if err = t.ExecuteTemplate(c.Writer, "sign_base", nil); err != nil {
+// 		log.Println("Error executing template: ", err)
+// 	}
+// }

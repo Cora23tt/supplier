@@ -13,14 +13,12 @@ type Authorisation interface {
 
 type Service struct {
 	Authorisation
-	VerifyedEmailsService
-	eauth
+	EAuthService
 }
 
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
-		Authorisation:         NewAuthService(repos.Authorisation),
-		VerifyedEmailsService: NewVerifiedEmailsService(),
-		eauth:                 NewEAuthService(),
+		Authorisation: NewAuthService(repos.Authorisation),
+		EAuthService:  NewEAuthService(),
 	}
 }

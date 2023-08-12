@@ -16,18 +16,17 @@ func NewHandler(services *service.Service) *Handler {
 func (h *Handler) InitRouts() *gin.Engine {
 	router := gin.New()
 
-	router.Static("static", "./static")
+	router.Static("static", "/home/cora/Documents/projects/golang-projects/online-diler/static")
 
 	router.GET("/", h.indexPage)
 
 	auth := router.Group("/auth")
 	{
-		auth.GET("/sign-up", h.signUp)
-		auth.POST("/sign-up", h.sendOTP)
-
-		auth.POST("/verify/:email", h.verifyEmail)
-		auth.POST("/sign-in", h.signIn)
-		auth.POST("/create-account", h.createAccount)
+		auth.GET("/signup", h.signUp)
+		auth.POST("/signup", h.sendOTP)
+		auth.POST("/verify/:email", h.verify)
+		// auth.POST("/create-account", h.createAccount)
+		// auth.POST("/signin", h.signIn)
 	}
 
 	return router
